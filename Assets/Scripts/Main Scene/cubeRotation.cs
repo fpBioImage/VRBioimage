@@ -18,11 +18,6 @@ public class cubeRotation : MonoBehaviour {
 	private Transform camTransform;
 
 	public float mouseSensitivity = 5.0f;
-
-	public float rotateTouchSpeed = 20000f;
-	public float pinchSpeed = 10f;
-	public float translateTouchSpeed = 10f;
-
 	private bool freezeRotation = false;
 
 	public void setFreezeRotation(bool input){
@@ -32,6 +27,10 @@ public class cubeRotation : MonoBehaviour {
 	// Use this for initialization
 	void Start () {
 		camTransform = Camera.main.transform;
+		#if UNITY_EDITOR
+		rotateSpeed = 2.0f;
+		mouseSensitivity = 5.0f;
+		#endif
 	}
 	
 	// Update is called once per frame

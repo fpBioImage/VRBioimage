@@ -35,12 +35,9 @@ public class variables : MonoBehaviour {
 	public static int volumeReadyState = 0;
 
 	public static FpbJSON fpbJSON = null;
-	public static FpbJSON fpbFromURL = null;
+	public static FpbJSON fpbFromURL = null; 
 	public static FpbBookmark fpbBookmark = null;
 
-	public static int fpbQuality = 0;
-
-	void Awake(){
-		DontDestroyOnLoad (transform.gameObject);
-	}
+	public static bool triggerRender;
+	public static int fpbQuality = 1;
 }

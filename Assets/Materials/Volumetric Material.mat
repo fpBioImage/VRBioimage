@@ -7,7 +7,7 @@ Material:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_Name: Volumetric Material
-  m_Shader: {fileID: 4800000, guid: 5cd2865fdb593d648bac6d1e6c34f119, type: 3}
+  m_Shader: {fileID: 4800000, guid: bce146ca43e286a48adf36d498d92e14, type: 3}
   m_ShaderKeywords: 
   m_LightmapFlags: 5
   m_EnableInstancingVariants: 0

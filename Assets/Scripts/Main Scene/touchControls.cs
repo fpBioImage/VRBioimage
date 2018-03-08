@@ -16,7 +16,7 @@ public class touchControls : MonoBehaviour {
 	void Start () {
 	}
 	
-	// Update is called once per frame
+	// Fixed update should keep movement smoother, hopefully.. 
 	void FixedUpdate () {
 		// Touch control
 		if (variables.freezeMouse) {

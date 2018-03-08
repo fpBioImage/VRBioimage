@@ -9,8 +9,5 @@ EditorBuildSettings:
     path: Assets/_Scenes/home.unity
     guid: 0180ddb6e1f5f04419dd0304489ee78c
   - enabled: 1
-    path: Assets/_Scenes/mainTouch.unity
-    guid: b5c34726873d73a4382246ce092ef8c8
-  - enabled: 1
-    path: Assets/_Scenes/mainVR.unity
-    guid: e50f651c677e94172b54c746899f1132
+    path: Assets/_Scenes/main.unity
+    guid: 839bf7bb2cfc5964cb7a7821cc5ad847

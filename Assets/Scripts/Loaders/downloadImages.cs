@@ -3,6 +3,8 @@ using System.IO;
 using UnityEngine;
 using UnityEngine.UI;
 
+// OFFLINE VERSION OF THIS FILE FOR ANDROID
+
 public class downloadImages : MonoBehaviour {
 
 	public bool changingQuality = false;
@@ -10,7 +12,6 @@ public class downloadImages : MonoBehaviour {
 	public GameObject infoBox;
 	public GameObject infoTextObject;
 	public GameObject qualityButton;
-	public GameObject qualityBox;
 	public GameObject fullScreenQuad;
 
 	public bool offlineMode = false;
@@ -32,251 +33,242 @@ public class downloadImages : MonoBehaviour {
 
 	private bool vr;
 
-
 	void Awake() {
-		offlineMode = true;
+		//offlineMode = true;
 		setVariables ();
 		vr = UnityEngine.SceneManagement.SceneManager.GetActiveScene ().buildIndex == 2;
 	}
 
 	void Start () {
 		qualityButton.SetActive (false);
-		rayMarchMaterial = cube.GetComponent<Renderer> ().material; 
+		rayMarchMaterial = cube.GetComponent<Renderer> ().material;
 
 		if (!atlasMode) {
 			print ("Loading by image slices");
-			if (vr)
-				infoTextObject.GetComponent<TextMesh> ().text = ("Downloading image\nslices..."); 
+			if (vr)	infoTextObject.GetComponent<TextMesh> ().text = ("Downloading image\nslices..."); 
 			else infoTextObject.GetComponent<Text>().text = "Downloading image\nslices...";
-			//StartCoroutine (loadBySlices ());
+			StartCoroutine (loadBySlices ());
 		} else {
 			print ("Loading atlases directly");
-			if (vr)
-				infoTextObject.GetComponent<TextMesh> ().text = "Downloading\natlases..."; 
+			if (vr)	infoTextObject.GetComponent<TextMesh> ().text = "Downloading\natlases..."; 
 			else infoTextObject.GetComponent<Text>().text = "Downloading\natlases...";
-			StartCoroutine (loadByAtlas ());
+			for (int i = 0; i < numAtlases; i++) {
+				StartCoroutine (loadByAtlas (i));
+			}
 		}
 	}
 
 
-	/*IEnumerator loadBySlices(){
-		//// THIS ALL NEEDS UPDATING. UNSUPPORTED FOR NOW. 
-		// First, check that variables.slices is null. If not, we don't have
-		// to download the images again, and can skip straight to loading the scene. 
-		if (variables.atlasArray[0] == null) {
-			// load the first image, to determine sizes. 
-			bool pngMode = true;
-			Debug.Log("Loading slices individually");
+	IEnumerator loadBySlices(){
+		bool pngMode = true;
 
-			Texture2D texture0 = new Texture2D (4, 4);
-			int ii = 0;
-			if (!offlineMode) {
-				string loadImage0 = variables.pathToImages + variables.imagePrefix + ii.ToString (variables.numberingFormat) + ".png";
-				WWW ww0 = new WWW (loadImage0);
+		// First, calculate image size from first texture
+		Texture2D texture0 = new Texture2D (4, 4);
+		int ii = 0;
+		string loadImage0 = pathToImages + imagePrefix + ii.ToString (numberingFormat);
+		if (loadImage0.Substring (0, 4) == "http") {
+			loadImage0 += ".png";
+			WWW ww0 = new WWW (loadImage0);
+			yield return ww0;
+
+			if (!string.IsNullOrEmpty(ww0.error)){
+				pngMode = false;
+				loadImage0 = pathToImages + imagePrefix + ii.ToString (numberingFormat) + ".jpg";
+				ww0 = new WWW (loadImage0);
 				yield return ww0;
-
-				if (!string.IsNullOrEmpty(ww0.error)){
-					pngMode = false;
-					loadImage0 = variables.pathToImages + variables.imagePrefix + ii.ToString (variables.numberingFormat) + ".jpg";
-					ww0 = new WWW (loadImage0);
-					yield return ww0;
-				}
-
-				ww0.LoadImageIntoTexture (texture0);
-
-			} else {
-				string loadImage0 = variables.pathToImages + variables.imagePrefix + ii.ToString (variables.numberingFormat);
-				texture0 = Resources.Load<Texture2D>(loadImage0);
 			}
 
-			int t0width = texture0.width;
-			int t0height = texture0.height;
+			ww0.LoadImageIntoTexture (texture0);
 
-			// Make sure we're within size limits
-			int texWidth = t0width > sizeLimit ? sizeLimit : t0width;
-			int texHeight = t0height > sizeLimit ? sizeLimit : t0height;
-			int numImages = variables.numberOfImages > sizeLimit ? sizeLimit : variables.numberOfImages;
-
-			// Adjust voxel size to our size-limit scaling
-			variables.voxelSize [0] *= (float)t0width / (float)texWidth;
-			variables.voxelSize [1] *= (float)t0height / (float)texHeight;
-			variables.voxelSize [2] *= (float)variables.numberOfImages / (float)numImages;
-
-			// Calculate power-of-2 sizes for images
-			int paddedSliceWidth = (int)ceil2((uint)texWidth);
-			int paddedSliceHeight = (int)ceil2((uint)texHeight);
-			int depthPadding = 4; // padding in depth helps stop strange rendering effects on some graphcis cards. 
-			int paddedSliceDepth = numImages + depthPadding;
-
-			int xOffset = Mathf.FloorToInt(((float)paddedSliceWidth-(float)texWidth)/2.0f);
-			int yOffset = Mathf.FloorToInt(((float)paddedSliceHeight-(float)texHeight)/2.0f);
-
-			// Set up 4 2D atlases with a clear black background, to fill with the PNGs. 
-			int atlasWidth;
-			int atlasHeight;
-
-			float slicesPerAtlas = Mathf.Ceil (paddedSliceDepth / numAtlases);
-			atlasWidth = (int) ceil2 ((uint)paddedSliceWidth);
-			atlasHeight = (int) ceil2 ((uint)(paddedSliceHeight * slicesPerAtlas));
-
-			while ((atlasHeight > 2*atlasWidth) && (atlasHeight > paddedSliceHeight)){
-				atlasHeight /= 2;
-				atlasWidth *= 2;
-			}
-
-			Color32 black = new Color32 (0, 0, 0, 0);
-
-			for (int i = 0; i < (int)numAtlases; i++) {
-				variables.atlasArray[i] = new Texture2D (atlasWidth, atlasHeight, TextureFormat.ARGB32, false);
-			}
-
-			Color32[] bigClearArray = variables.atlasArray[0].GetPixels32 ();
-
-			for (int i = 0; i < bigClearArray.Length; i++)
-				bigClearArray [i] = black;
-
-			for (int i = 0; i < (int)numAtlases; i++) {
-				variables.atlasArray[i].SetPixels32(bigClearArray);
-			}
-
-			// Set up some variable for atlas filling
-			float xCoord;
-			float yCoord;
-
-			float slicesPerRow = Mathf.Floor((float)atlasWidth / (float)paddedSliceWidth);
-			float texturesPerSlice = Mathf.Ceil ((float)paddedSliceDepth / numAtlases);
-
-			// This loop does the actual downloading and filling of the atlases
-			for (int i = 0; i < numImages; i++) {
-				int j = i + Mathf.FloorToInt((float)depthPadding/2.0f);
-				int k = Mathf.RoundToInt (i * (float)variables.numberOfImages / (float)numImages);
-
-				int atlasNumber = (int) (((float)j) % numAtlases);
-				float locationIndex = Mathf.Floor(((float)j)/numAtlases);
-
-				Texture2D downloadedImage = new Texture2D (t0width, t0width);
-				infoText.text = "Loading slice " + (i+1).ToString () + " of " + numImages + ".";
-
-				if (!offlineMode) {
-					string imageToLoad;
-					if (pngMode) {
-						imageToLoad = variables.pathToImages + variables.imagePrefix + k.ToString (variables.numberingFormat) + ".png";
-					} else {
-						imageToLoad = variables.pathToImages + variables.imagePrefix + k.ToString (variables.numberingFormat) + ".jpg";
-					}
-					WWW www = new WWW (imageToLoad);
-					yield return www;
-					www.LoadImageIntoTexture (downloadedImage);
-				} else {
-					string imageToLoad = variables.pathToImages + variables.imagePrefix + k.ToString (variables.numberingFormat);
-					downloadedImage = Resources.Load<Texture2D>(imageToLoad);
-				}
-
-				if (t0width > sizeLimit || t0height > sizeLimit) {
-					TextureScaler.scale (downloadedImage, texWidth, texHeight);
-				}
-
-				xCoord = (locationIndex % slicesPerRow) * paddedSliceWidth;
-				xCoord += xOffset;
-				yCoord = Mathf.Floor(locationIndex / slicesPerRow) * paddedSliceHeight;
-				yCoord += yOffset;
-
-				variables.atlasArray[atlasNumber].SetPixels ((int)xCoord, (int)yCoord, texWidth, texHeight, downloadedImage.GetPixels (0, 0, texWidth, texHeight));
-			}
-			for (int i = 0; i < (int)numAtlases; i++) {
-				variables.atlasArray [i].Apply ();
-			}
-
-			// Set the global variables for the renderer
-			variables.numSlices = paddedSliceDepth;
-			variables.slicesPerRow = slicesPerRow;
-
-			variables.texturesPerSlice = texturesPerSlice;
-
-			variables.tPixelWidth = paddedSliceWidth;
-			variables.tPixelHeight = paddedSliceHeight;
-			variables.atlasWidth = atlasWidth;
-			variables.atlasHeight = atlasHeight;
-			variables.cubeSize = new Vector3 ((float)paddedSliceWidth * voxelSize.x, (float)paddedSliceHeight * voxelSize.y, (float)paddedSliceDepth * voxelSize.z);
-
-			variables.cubeScale = 3.5f * Mathf.Max ((float)paddedSliceWidth / (float)texWidth, Mathf.Max ((float)paddedSliceHeight / (float)texHeight, (float)paddedSliceDepth / (float)numImages));
+		} else {
+			offlineMode = true;
+			texture0 = Resources.Load (loadImage0) as Texture2D;
 		}
 
-		// Load the scene
-		infoText.text = "Preparing volumetric renderer...";
-		UnityEngine.SceneManagement.SceneManager.LoadScene ("main");
-	}*/
+		int texWidth = texture0.width;
+		int texHeight = texture0.height;
 
-	IEnumerator loadByAtlas(){
-		float atlasWidth = 1; 
+		// Make sure we're within size limits
+		imageWidth = texWidth > sizeLimit ? sizeLimit : texWidth;
+		imageHeight = texHeight > sizeLimit ? sizeLimit : texHeight;
 
-		for (int atlasNumber = 0; atlasNumber < numAtlases; atlasNumber++) {
-			if (vr)
-				infoTextObject.GetComponent<TextMesh> ().text = "Loading atlas\n" + (atlasNumber + 1) + " of " + (int)numAtlases + ".";
-			else	infoTextObject.GetComponent<Text> ().text = "Loading atlas\n" + (atlasNumber + 1) + " of " + (int)numAtlases + ".";
-
-			string atlasToLoad = pathToImages + imagePrefix + atlasNumber.ToString (numberingFormat);
-			Texture2D atlasSlice = new Texture2D (4, 4, TextureFormat.ARGB32, false);
-
-			if (atlasToLoad.Substring (0, 4) == "http") {
-				atlasToLoad += ".png";
-				WWW www = new WWW (atlasToLoad);
-				//yield return www;
-
-				while (!www.isDone) {
-					// TODO: DEBUG: 
-					infoTextObject.GetComponent<Text> ().text = "Downloaded " + (www.progress*100).ToString() + "% from \n" + atlasToLoad;
-					yield return null;
-				}
-
-				// Load image into atlas
-				if (string.IsNullOrEmpty (www.error)) {
-					www.LoadImageIntoTexture (atlasSlice);
-				} else {
-					byte[] fileData = File.ReadAllBytes (atlasToLoad);
-					atlasSlice.LoadImage (fileData);
-				}
-			} else {
-				atlasSlice = Resources.Load (atlasToLoad) as Texture2D;
-				yield return null;
-			}
-			// Set atlas to material
-			rayMarchMaterial.SetTexture("_Atlas"+atlasNumber, atlasSlice);
-
-			if (atlasNumber == 0){
-				atlasWidth = atlasSlice.width;
-				rayMarchMaterial.SetFloat("_atlasWidth", atlasWidth);
-				rayMarchMaterial.SetFloat ("_atlasHeight", atlasSlice.height);
-			}
-
-		}
-
-		// Calculate a few more useful variables
-		float paddedImageWidth = (float) ceil2((uint) imageWidth);
-		float paddedImageHeight = (float) ceil2 ((uint) imageHeight);
-
-		float slicesPerRow = Mathf.Floor(atlasWidth / paddedImageWidth);
+		// Calcualte atlas size
+		float paddedImageWidth = (float)ceil2 ((uint)imageWidth);
+		float paddedImageHeight = (float)ceil2 ((uint)imageHeight);
 		float slicesPerAtlas = Mathf.Ceil (imageDepth / numAtlases);
 
-		// Set other material properties
+		int atlasWidth = (int) ceil2 ((uint)paddedImageWidth);
+		int atlasHeight = (int) ceil2 ((uint)(paddedImageHeight * slicesPerAtlas));
+
+		while ((atlasHeight > 2*atlasWidth) && (atlasHeight > paddedImageHeight)){
+			atlasHeight /= 2;
+			atlasWidth *= 2;
+		}
+
+		// Create array of atlas textures
+		Color32 black = new Color32 (0, 0, 0, 255);
+
+		Texture2D[] atlasArray = new Texture2D[(int)numAtlases];
+		for (int i = 0; i < (int)numAtlases; i++) {
+			atlasArray[i] = new Texture2D (atlasWidth, atlasHeight, TextureFormat.ARGB32, false);
+		}
+
+		// Set all pixels in the atlases to be clear
+		Color32[] bigClearArray = atlasArray[0].GetPixels32 ();
+		for (int i = 0; i < bigClearArray.Length; i++)
+			bigClearArray [i] = black;
+
+		for (int i = 0; i < (int)numAtlases; i++) {
+			atlasArray[i].SetPixels32(bigClearArray);
+		}
+
+
+		// Set up some variables for atlas filling
+		int xOffset = Mathf.FloorToInt(((float)paddedImageWidth-(float)texWidth)/2.0f);
+		int yOffset = Mathf.FloorToInt(((float)paddedImageHeight-(float)texHeight)/2.0f);
+
+		float slicesPerRow = Mathf.Floor((float)atlasWidth / (float)paddedImageWidth);
+
+		// This loop does the actual downloading and filling of the atlases
+		for (int i = 0; i < imageDepth; i++) {
+
+			int atlasNumber = (int) (((float)i) % numAtlases);
+			float locationIndex = Mathf.Floor(((float)i)/numAtlases);
+
+			Texture2D downloadedImage = new Texture2D (imageWidth, imageHeight);
+			if(vr) infoTextObject.GetComponent<TextMesh>().text = "Loading slice " + (i+1).ToString () + " of " + imageDepth + ".";
+			else infoTextObject.GetComponent<Text>().text = "Loading slice " + (i+1).ToString () + " of " + imageDepth + ".";
+
+			string imageToLoad = pathToImages + imagePrefix + i.ToString (numberingFormat);
+			if (!offlineMode) {
+				if (pngMode)
+					imageToLoad += ".png";
+				else
+					imageToLoad += ".jpg";
+				WWW www = new WWW (imageToLoad);
+				yield return www;
+				www.LoadImageIntoTexture (downloadedImage);
+				//yield return new WaitForSeconds (0.025f);
+			} else {
+				//byte[] fileData = File.ReadAllBytes (imageToLoad);
+				//downloadedImage.LoadImage (fileData);
+				downloadedImage = Resources.Load(imageToLoad) as Texture2D;
+				yield return null;
+			}
+
+			if (texWidth > sizeLimit || texHeight > sizeLimit) {
+				TextureScaler.scale (downloadedImage, imageWidth, imageHeight);
+			}
+
+			float xCoord = (locationIndex % slicesPerRow) * paddedImageWidth;
+			xCoord += xOffset;
+			float yCoord = Mathf.Floor(locationIndex / slicesPerRow) * paddedImageHeight;
+			yCoord += yOffset;
+
+			atlasArray[atlasNumber].SetPixels ((int)xCoord, (int)yCoord, texWidth, texHeight, downloadedImage.GetPixels (0, 0, texWidth, texHeight));
+		}
+
+		// Apply pixels and send to GPU
+		if(vr) infoTextObject.GetComponent<TextMesh>().text = "Preparing volumetric renderer...";
+		else infoTextObject.GetComponent<Text>().text = "Preparing volumetric renderer...";
+		for (int i = 0; i < (int)numAtlases; i++) {
+			atlasArray [i].Apply ();
+			rayMarchMaterial.SetTexture ("_Atlas" + i, atlasArray [i]);
+		}
+
+		// Now set the material and rendering properties
+		rayMarchMaterial.SetFloat("_atlasWidth", atlasWidth);
+		rayMarchMaterial.SetFloat ("_atlasHeight", atlasHeight);
 		rayMarchMaterial.SetFloat ("_imageDepth", imageDepth);
 		rayMarchMaterial.SetFloat ("_imageWidth", paddedImageWidth);
 		rayMarchMaterial.SetFloat ("_imageHeight", paddedImageHeight);
 		rayMarchMaterial.SetFloat ("_slicesPerAtlas", slicesPerAtlas);
 		rayMarchMaterial.SetFloat ("_slicesPerRow", slicesPerRow);
 
-
 		Vector3 cubeSize = new Vector3 (imageWidth * voxelSize.x, imageHeight * voxelSize.y, imageDepth * voxelSize.z).normalized;
-		cubeSize *= 3.5f * Mathf.Min (1.0f/cubeSize.x, Mathf.Min (1.0f/cubeSize.y, 1.0f/cubeSize.z));
-
+		cubeSize *= 3.5f * Mathf.Min (1.0f / cubeSize.x, Mathf.Min (1.0f / cubeSize.y, 1.0f / cubeSize.z));
 		cube.transform.localScale = cubeSize;
 
 		// Load the scene
-		if(vr) infoTextObject.GetComponent<TextMesh>().text = "Click to start"; else infoTextObject.GetComponent<Text>().text = "Click to start" ;
+		if(vr) infoTextObject.GetComponent<TextMesh>().text = "Click to start";
+		else infoTextObject.GetComponent<Text>().text = "Click to start";
 		variables.freezeAll = false;
 		cube.SetActive (true);
 		qualityButton.SetActive (true);
+		variables.triggerRender = true;
 		variables.volumeReadyState = 1;
+	}
+
+	// LOAD BY ATLAS
+	private int atlasesLoaded = 0;
+	private float[] downloadProgress = new float[8];
+	IEnumerator loadByAtlas(int atlasNumber){
+		float atlasWidth = 1; 
+
+		//infoText.text = "Downloading texture map " + (atlasNumber+1) + " of " + (int)numAtlases + ".";
+
+		string atlasToLoad = pathToImages + imagePrefix + atlasNumber.ToString (numberingFormat);
+		Texture2D atlasSlice = new Texture2D (4, 4, TextureFormat.ARGB32, false);
+
+		if (atlasToLoad.Substring (0, 4) == "http") {
+			atlasToLoad += ".png";
+			WWW www = new WWW (atlasToLoad);
+
+			while (!www.isDone) {
+				downloadProgress [atlasNumber] = www.progress;
+				if (vr) infoTextObject.GetComponent<TextMesh> ().text = "Downloaded " + (sum (downloadProgress) / numAtlases).ToString ("P1");
+				else infoTextObject.GetComponent<Text> ().text = "Downloaded " + (sum (downloadProgress) / numAtlases).ToString ("P1"); 
+				yield return null;
+			}
+			yield return www;
+
+			// Load image into atlas
+			www.LoadImageIntoTexture (atlasSlice);
+		} else {
+			//byte[] fileData = File.ReadAllBytes (atlasToLoad);
+			//atlasSlice.LoadImage (fileData);
+			atlasSlice = Resources.Load(atlasToLoad) as Texture2D;
+		}
+
+		// Set atlas to material
+		rayMarchMaterial.SetTexture("_Atlas"+atlasNumber, atlasSlice);
+
+
+		atlasesLoaded++;
+		// Calculate a few more useful variables
+		if (atlasesLoaded == (int)numAtlases) {
+			atlasWidth = atlasSlice.width;
+			rayMarchMaterial.SetFloat("_atlasWidth", atlasWidth);
+			rayMarchMaterial.SetFloat ("_atlasHeight", atlasSlice.height);
+
+			float paddedImageWidth = (float)ceil2 ((uint)imageWidth);
+			float paddedImageHeight = (float)ceil2 ((uint)imageHeight);
+
+			float slicesPerRow = Mathf.Floor (atlasWidth / paddedImageWidth);
+			float slicesPerAtlas = Mathf.Ceil (imageDepth / numAtlases);
+
+			// Set other material properties
+			rayMarchMaterial.SetFloat ("_imageDepth", imageDepth);
+			rayMarchMaterial.SetFloat ("_imageWidth", paddedImageWidth);
+			rayMarchMaterial.SetFloat ("_imageHeight", paddedImageHeight);
+			rayMarchMaterial.SetFloat ("_slicesPerAtlas", slicesPerAtlas);
+			rayMarchMaterial.SetFloat ("_slicesPerRow", slicesPerRow);
+
+
+			Vector3 cubeSize = new Vector3 (imageWidth * voxelSize.x, imageHeight * voxelSize.y, imageDepth * voxelSize.z).normalized;
+			cubeSize *= 3.5f * Mathf.Min (1.0f / cubeSize.x, Mathf.Min (1.0f / cubeSize.y, 1.0f / cubeSize.z));
+
+			cube.transform.localScale = cubeSize;
+
+			// Load the scene
+			if (vr)	infoTextObject.GetComponent<TextMesh> ().text = "Click to start";
+			else infoTextObject.GetComponent<Text> ().text = "Click to start";
+			variables.freezeAll = false;
+			cube.SetActive (true);
+			qualityButton.SetActive (true);
+			variables.triggerRender = true;
+			variables.volumeReadyState = 1;
+		}
 	}
 
 	void Update(){
@@ -285,7 +277,7 @@ public class downloadImages : MonoBehaviour {
 				if (changingQuality && Input.GetKey (KeyCode.Mouse0)) {
 					infoBox.SetActive (false);
 					// Then open the quality changer
-					qualityBox.SetActive(true);
+					GameObject.Find("Arrow Left").GetComponent<leftArrowControl>().arrowClicked();
 				} else {
 					infoBox.SetActive (false);
 				}
@@ -293,27 +285,22 @@ public class downloadImages : MonoBehaviour {
 				variables.volumeReadyState = 2;
 			}
 		}
-		if (Input.GetKeyUp (KeyCode.Escape)) {
-			UnityEngine.SceneManagement.SceneManager.LoadScene (0);
-		}
 	}
 
 	public void setChangingQuality(bool mouseIn){
 		changingQuality = mouseIn;
 	}
 
-	// Set variables for android mode
+	// Set variables for online mode
 	private void setVariables(){
 		//Application.ExternalEval ("fpcanvas.SendMessage('Main Camera', 'parseFpbJSON', JSON.stringify(fpb));");
 
 		atlasMode = variables.fpbJSON.getAtlasMode();
-		print ("Set Atlas Mode as " + atlasMode);
 		pathToImages = variables.fpbJSON.pathToImages;
 		if (pathToImages.Substring (pathToImages.Length - 1) != "/") {
 			pathToImages = pathToImages + "/";
 		}
-		print ("Set path to images as " + pathToImages);
-		
+
 
 		imagePrefix = variables.fpbJSON.imagePrefix;
 		numberingFormat = variables.fpbJSON.numberingFormat;
@@ -321,10 +308,7 @@ public class downloadImages : MonoBehaviour {
 		imageWidth = variables.fpbJSON.sliceWidth;
 		imageHeight = variables.fpbJSON.sliceHeight;
 		imageDepth = variables.fpbJSON.numberOfImages;
-		print ("Set image depth as " + imageDepth);
 		voxelSize = variables.fpbJSON.voxelSize; // this one might not work so well... 
-		print("Set voxel size as x:" + voxelSize.x + ", y:" + voxelSize.y + ", z:" + voxelSize.z);
-
 	}
 
 	public void parseFpbJSON(string jsonString){
@@ -359,6 +343,15 @@ public class downloadImages : MonoBehaviour {
 		x |= (x >> 131072);
 		x |= (x >> 262144);
 		return (x+1);
+	}
+
+	// Just a useful sum helper-function 
+	private float sum(float[] arrayToSum){
+		float output = 0.0f;
+		for (int i = 0; i < arrayToSum.Length; i++) {
+			output += arrayToSum [i];
+		}
+		return output;
 	}
 
 }

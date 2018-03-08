@@ -10,10 +10,7 @@ public class resizer : UIBehaviour {
 
 	protected override void OnRectTransformDimensionsChange(){
 		variables.hidePanels = (canvasTransform.sizeDelta.x / canvasTransform.sizeDelta.y < 1.1);
-
-		#if UNITY_EDITOR
 		fullScreenQuad.SendMessage ("updateQuality");
-		#endif
 	}
 
 }

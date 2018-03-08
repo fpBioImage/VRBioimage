@@ -49,7 +49,6 @@ public class UnityDeeplinks : MonoBehaviour {
 			FpbJSON fpb = JsonUtility.FromJson<FpbJSON> (fpbString);
 			if (fpb.uniqueName != null) {
 				variables.fpbFromURL = fpb;
-				//variables.fpbJSON = fpb;
 				sceneDropdown.AddOptions (new List<string>{ fpb.uniqueName });
 				sceneDropdown.value = sceneDropdown.options.Count - 1;
 			}
