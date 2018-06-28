@@ -40,4 +40,6 @@ public class variables : MonoBehaviour {
 
 	public static bool triggerRender;
 	public static int fpbQuality = 1;
+
+	public static int rainbow = 0;
 }

@@ -69,6 +69,7 @@ public class fpbRendering : MonoBehaviour {
 		_thresholdID = Shader.PropertyToID ("_DataMin");
 		_renderID = Shader.PropertyToID ("_RenderMode");
 		_clipPlane1ID = Shader.PropertyToID ("_ClipPlane");
+		_rayMarchMaterial.SetInt ("_RainbowCube", variables.rainbow);
 
 		updateTime = Time.time;
 	}
@@ -101,7 +102,7 @@ public class fpbRendering : MonoBehaviour {
 			_rayMarchMaterial.SetVector (_clipPlane1ID, Vector4.zero);
 		}
 			
-		_rayMarchMaterial.SetFloat (_opacityID, opacity*opacity*5.0f); // Blending strength 
+		_rayMarchMaterial.SetFloat (_opacityID, opacity); // Blending strength 
 		_rayMarchMaterial.SetFloat (_thresholdID, threshold); // alpha cutoff value
 		_rayMarchMaterial.SetFloat (_intensityID, intensity); // blends image a bit better
 		_rayMarchMaterial.SetFloat (_renderID, (float)renderingMode.value);

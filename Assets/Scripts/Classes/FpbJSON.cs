@@ -70,7 +70,7 @@ public class FpbJSON {
 			numberingFormat = "0000";
 			pathToImages = "mouse/";
 			voxelSize = new Vector3 (1.0f, 1.0f, 1.0f / 2);
-			opacity = 0.7f;
+			opacity = 5.0f;
 			intensity = 1.3f;
 			threshold = 0.2f;
 			projection = 2;

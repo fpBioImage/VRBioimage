@@ -223,7 +223,7 @@ RectTransform:
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 1, y: 0.2}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 20, y: 20}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -469,7 +469,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Medium (PC)
+  m_Text: Medium
 --- !u!222 &49762873
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -686,7 +686,7 @@ MonoBehaviour:
   m_HandleRect: {fileID: 34133754}
   m_Direction: 2
   m_Value: 0
-  m_Size: 0.2
+  m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -3721,6 +3721,8 @@ MonoBehaviour:
       m_Image: {fileID: 0}
     - m_Text: Composite 2
       m_Image: {fileID: 0}
+    - m_Text: Iso-surface
+      m_Image: {fileID: 0}
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls:
@@ -4896,17 +4898,17 @@ MonoBehaviour:
     m_Options:
     - m_Text: Very low
       m_Image: {fileID: 0}
-    - m_Text: Low (Old Mobile)
+    - m_Text: Low
       m_Image: {fileID: 0}
-    - m_Text: Medium (PC)
+    - m_Text: Medium
       m_Image: {fileID: 0}
-    - m_Text: High (Graphics)
+    - m_Text: High
       m_Image: {fileID: 0}
     - m_Text: Very high
       m_Image: {fileID: 0}
     - m_Text: Top (Risky!)
       m_Image: {fileID: 0}
-    - m_Text: Cutsom...
+    - m_Text: Custom...
       m_Image: {fileID: 0}
   m_OnValueChanged:
     m_PersistentCalls:
@@ -6243,7 +6245,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: -18, y: 0}
+  m_SizeDelta: {x: -17, y: 0}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &1304557723
 MonoBehaviour:
@@ -10396,9 +10398,9 @@ MonoBehaviour:
   m_HandleRect: {fileID: 1384929320}
   m_Direction: 0
   m_MinValue: 0
-  m_MaxValue: 1.6
+  m_MaxValue: 8
   m_WholeNumbers: 0
-  m_Value: 1
+  m_Value: 5
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []

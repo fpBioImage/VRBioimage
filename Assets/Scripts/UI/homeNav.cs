@@ -27,7 +27,12 @@ public class homeNav : MonoBehaviour {
 	}
 
 	public void changeModelDropdown(int model){
-		variables.fpbJSON = new FpbJSON (model);
+		if (model == 2) {
+			variables.rainbow = 1;
+		} else {
+			variables.rainbow = 0;
+			variables.fpbJSON = new FpbJSON (model);
+		}
 	}
 
 	public void changeQualityDropdown(int quality){

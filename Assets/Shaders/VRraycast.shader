@@ -6,7 +6,7 @@
 // Adapted heavily for use in FPBioimage 2017
 // Marcus Fantham, University of Cambridge
 
-Shader "Custom/VR Raycaster" {
+Shader "Custom/Volume Ray Caster" {
 	
 	Properties {
 		_DataMin ("Data threshold: min", Range(0,1)) = 0
@@ -15,11 +15,6 @@ Shader "Custom/VR Raycaster" {
 		_Opacity ("Intensity normalization per step", Range(0, 10)) = 1
 		_Intensity  ("Intensity normalization per ray" , Range(0, 10)) = 1
 		_Steps ("Max number of steps", Range(1,1024)) = 128 // should ideally be as large as data resolution, strongly affects frame rate
-		_Interp ("Interpolation value", Range(0,2)) = 1 // Interpolation looks nicer, but is slower due to more texture reads
-		_RenderMode ("Render Mode", Range(0,5)) = 0 // MIP, Composting multiply-alpha, composting built-in alpha, Gradient magnitude, iso-shading?
-
-		_stepAdjustment ("Adjust step size?", Int) = 1
-		_startOffset ("Offset Start?", Int) = 1
 
 		_Atlas0("Atlas0", 2D) = "black" {}
 		_Atlas1("Atlas1", 2D) = "black" {}
@@ -33,22 +28,22 @@ Shader "Custom/VR Raycaster" {
 
 	SubShader {
 		
-		Tags { "Queue" = "Transparent" "RenderType" = "TransparentCutout"}
+		Tags { "Queue" = "Transparent" }
 
 		Pass {
-			//Blend SrcAlpha OneMinusSrcAlpha
-			Cull Off
-			ZTest LEqual // Check this...
-			ZWrite On // Off is correct. 
+			Blend SrcAlpha OneMinusSrcAlpha
+			Cull Front
+			ZTest Always // Check this...
+			ZWrite Off // Off is correct. 
 			Fog { Mode off }
 
 			CGPROGRAM
-	        #pragma target 3.0
+	        #pragma target 2.0
 			#pragma vertex vert
 			#pragma fragment frag
 
 			#include "UnityCG.cginc"
-			#define MAX_STEPS 512
+			#define MAX_STEPS 768
 
 			sampler2D _Atlas0, _Atlas1, _Atlas2, _Atlas3, _Atlas4, _Atlas5, _Atlas6, _Atlas7; 
 
@@ -60,9 +55,6 @@ Shader "Custom/VR Raycaster" {
 			float _atlasWidth;
 			float _atlasHeight;
 
-			int _stepAdjustment;
-			int _startOffset;
-
 			float4 _ClipPlane;
 			float4 _CubeScale;
 			float _DataMin, _DataMax;
@@ -71,7 +63,8 @@ Shader "Custom/VR Raycaster" {
 			float _Intensity;
 			float _Steps;
 			float _Interp;
-			float _RenderMode;
+			int _RenderMode;
+			int _RainbowCube;
 
 			// 2D atlas sampling, including interpolation
 			float4 V(float X, float Y, float Z){
@@ -161,21 +154,29 @@ Shader "Custom/VR Raycaster" {
 				return c;
 			}
 
-			float hash(float n){return frac(sin(n)*43758.5453);}
-			float rand (float3 x){
-				float3 p = floor(x);
-				float3 f = frac(x);
-				f = f*f*(3.0-2.0*f);
-				float n = p.x + p.y*57.0 + 113.0*p.z;
-
-				return (lerp(lerp(lerp( hash(n+0.0), hash(n+1.0), f.x), 
-							lerp( hash(n+57.0), hash(n+58.0),f.x),f.y),
-							lerp(lerp( hash(n+113.0), hash(n+114.0), f.x),
-							lerp( hash(n+170.0), hash(n+171.0),f.x),f.y),f.z) + 1.0 )/2.0;
-			}
-
 			// calculates intersection between a ray and a box
 			// http://www.siggraph.org/education/materials/HyperGraph/raytrace/rtinter3.htm
+			bool IntersectBox(float3 ray_o, float3 ray_d, float3 boxMin, float3 boxMax, out float tNear, out float tFar)
+			{
+			    // compute intersection of ray with all six bbox planes
+			    float3 invR = 1.0 / ray_d;
+			    float3 tBot = invR * (boxMin.xyz - ray_o);
+			    float3 tTop = invR * (boxMax.xyz - ray_o);
+			    // re-order intersections to find smallest and largest on each axis
+			    float3 tMin = min (tTop, tBot);
+			    float3 tMax = max (tTop, tBot);
+			    // find the largest tMin and the smallest tMax
+			    float2 t0 = max (tMin.xx, tMin.yz);
+			    float largest_tMin = max (t0.x, t0.y);
+			    t0 = min (tMax.xx, tMax.yz);
+			    float smallest_tMax = min (t0.x, t0.y);
+			    // check for hit
+			    bool hit = (largest_tMin <= smallest_tMax);
+			    tNear = largest_tMin;
+			    tFar = smallest_tMax;
+			    return hit;
+			}
+
 			struct vert_input {
 			    float4 pos : POSITION;
 			};
@@ -197,45 +198,38 @@ Shader "Custom/VR Raycaster" {
 				// calculate position on screen (unused)
 				o.pos = UnityObjectToClipPos(i.pos);
 
-
 				return o;
+			}
+
+			// gets data value at a given position
+			float4 get_data(float3 pos) {
+				// sample texture (pos is normalized in [0,1])
+				float4 data = sample2D(pos);
+				float meanColor = (data.r + data.g + data.b) / 3.0f;
+
+				// slice and threshold
+
+				//float border = step(-_ClipPlane.w, dot(_ClipPlane, float4(pos-0.5, 0)));
+				//data *= border;
+				//border *= step(-_ClipPlane2.w, dot(_ClipPlane2, float4(pos-0.5, 0)));
+				data *= step(_DataMin, meanColor);
+				data *= step(meanColor, _DataMax);
+
+				return data;
 			}
 
 			// fragment program
 			float4 frag(frag_input i) : COLOR
 			{
-			    i.ray_d = normalize(i.ray_d); // ray direction? 
+			    i.ray_d = normalize(i.ray_d);
 			    // calculate eye ray intersection with cube bounding box
 				float3 boxMin = { -0.5, -0.5, -0.5 };
 				float3 boxMax = {  0.5,  0.5,  0.5 };
-
-			    float3 invR = 1.0 / i.ray_d;
-			    float3 firstPlaneIntersections = invR * (boxMin.xyz - i.ray_o);
-			    float3 secondPlaneIntersections = invR * (boxMax.xyz - i.ray_o);
-			    // re-order intersections to find smallest and largest on each axis
-			    float3 closestPlaneIntersections = min (firstPlaneIntersections, secondPlaneIntersections);
-			    float3 furthestPlaneIntersections = max (firstPlaneIntersections, secondPlaneIntersections);
-
-			    // find the largest tMin and the smallest tMax
-			    float2 boxIntersections;
-			    boxIntersections.x = max(closestPlaneIntersections.x, max(closestPlaneIntersections.y, closestPlaneIntersections.z));
-			    boxIntersections.y = min(furthestPlaneIntersections.x, min(furthestPlaneIntersections.y, furthestPlaneIntersections.z));
-
-			    //float2 t0 = max (tMin.xx, tMin.yz);
-			    //float largest_tMin = max (t0.x, t0.y);
-			    //t0 = min (tMax.xx, tMax.yz);
-			    //float smallest_tMax = min (t0.x, t0.y);
-			    // check for hit
-			    //bool hit = (largest_tMin <= smallest_tMax);
-			    //float tNear = largest_tMin;
-			    //float tFar = smallest_tMax;
-			    bool hit = (boxIntersections.x <= boxIntersections.y);
-			    float tNear = boxIntersections.x;
-			    float tFar = boxIntersections.y;
-			    
-			    //if (!hit) discard;
-			    //if (tNear < 0.0) tNear = 0.0;
-			    // calculate intersection points 
+			    float tNear, tFar;
+			    bool hit = IntersectBox(i.ray_o, i.ray_d, boxMin, boxMax, tNear, tFar);
+			    if (!hit) discard;
+			    if (tNear < 0.0) tNear = 0.0;
+			    // calculate intersection points
 			    float3 pNear = i.ray_o + i.ray_d*tNear;
 			    float3 pFar  = i.ray_o + i.ray_d*tFar;
 			    // convert to texture space
@@ -243,71 +237,73 @@ Shader "Custom/VR Raycaster" {
 				pFar  = pFar  + 0.5;
 				
 			    // march along ray inside the cube, accumulating color
-			    float xScreen = 2.0f * abs(i.pos.x/_ScreenParams.x - 0.5f); // From 0->1
-			    float yScreen = 2.0f * abs(i.pos.y/_ScreenParams.y - 0.5f); // From 0->1
-
-			    float extraStepLength = sqrt(1+xScreen*xScreen+yScreen*yScreen);
-
-//			    float startOffsetX = xScreen*xScreen;//sqrt(1-xScreen*xScreen);
-//			    float startOffsetY = yScreen*yScreen;//sqrt(1-yScreen*yScreen);
-
-			    //float3 startOffset = float3(rand(i.pos.xy), rand(i.ray_d.xy), rand(i.ray_o.xy))/_Steps;
-			    float3 startOffset = 0;
-			    if (_startOffset == 1){
-				    startOffset = (extraStepLength-1.0)/_Steps;
-				} else if (_startOffset == 2){
-					startOffset = rand(i.ray_d.xyz)/_Steps;
-				}
-
 				float3 ray_pos = pNear;
 				float3 ray_dir = pFar - pNear;
 
-				float3 ray_step;
-				if (_stepAdjustment == 1){
-				 ray_step = normalize(ray_dir) * extraStepLength / _Steps;
-				} else {
-				 ray_step = normalize(ray_dir) / _Steps;
-				}
+				float3 ray_step = 1.7320508 * normalize(ray_dir) / _Steps;
+				float mean_max_voxel = 0.0;
+				float normalised_opacity = saturate(_Opacity * length(ray_step));
+				//float iso_cutoff = _DataMin * (1+ _Opacity/8.0);
+				float iso_cutoff = _Opacity/8.0; 
+				//bool rainbowDebug = false;
+				//if (_RainbowCube == 1){
+				//	rainbowDebug = true;
+				//}
 
-				//if (tNear > 0.0) ray_step*=sqrt(3);
 				float4 ray_col = 0;
 				for(int k = 0; k < MAX_STEPS; k++)
 				{
-					if (k<_Steps && hit){
-						ray_pos = pNear + startOffset + k * ray_step;
+					if (k<_Steps){
+
+						ray_pos = pNear + k * ray_step;
+						//float4 worldRayPos = dot(float4(ray_pos-0.5f, 1.0f), _CubeScale);
 						bool doClip = dot(_ClipPlane, float4(ray_pos-0.5f, 1.0f)) > 0.0f;
 
 						if (!doClip && k<_Steps && ray_pos.x > 0 && ray_pos.y > 0 && ray_pos.z > 0
-						  && ray_pos.x < 1 && ray_pos.y < 1 && ray_pos.z < 1){
-						  	float4 voxel_col = sample2D(ray_pos);
-						  	//voxel_col = float4(ray_pos.xyz, 0.5f); // Nice line for rainbow cube testing
-						  	//voxel_col = float4(extraStepLength, extraStepLength, extraStepLength, 0.5f);
+						  && ray_pos.x < 1 && ray_pos.y < 1 && ray_pos.z < 1 && ray_col.a < 1.0){
+						  	float4 voxel_col;
+						  	//if (!rainbowDebug){
+						  		voxel_col = sample2D(ray_pos);
+						  	//} else {
+						  	//	voxel_col.rgb = ray_pos;
+						  	//	voxel_col.a = 0.9;
+					  		//}
 						  	float mean_col = (voxel_col.r + voxel_col.g + voxel_col.b)/3.0f;
-						  	if (_RenderMode < 0.5 && mean_col > _DataMin && mean_col < _DataMax){
-						  		// Max Intensity Projection
-						  		float mean_max_voxel = (ray_col.r + ray_col.g + ray_col.b)/3.0f;
-						  		if (mean_col > mean_max_voxel) ray_col = voxel_col;
 
-						  	} else if (_RenderMode < 1.5 && ray_col.a < 1.0 && mean_col > _DataMin && mean_col < _DataMax){
-						  		// Composting multiply alpha
-						  		//float normalisation = _Opacity * length(ray_step) * pow(mean_col, _StretchPower);
-						  		//ray_col.rgb = ray_col.rgb + (1 - ray_col.a) * normalisation * voxel_col.rgb * (_Steps-k)/k;
-						  		//ray_col.a   = ray_col.a   + (1 - ray_col.a) * normalisation;
-						  		voxel_col.a *= saturate(_Opacity * length(ray_step));
-						  		voxel_col.rgb *= voxel_col.a * _StretchPower;
+						  	if (_RenderMode == 0 && mean_col > _DataMin && mean_col < _DataMax){
+						  		// Max Intensity Projection
+						  		if (mean_col > mean_max_voxel){
+						  			mean_max_voxel = mean_col;
+						  			ray_col.rgb = voxel_col;
+						  			ray_col.a = 0.99;
+						  		}
+
+						  	} else if (_RenderMode == 1 && mean_col > _DataMin){
+						  		// Composting
+						  		voxel_col.a *= normalised_opacity; //saturate(_Opacity * length(ray_step));
+						  		voxel_col.rgb *= voxel_col.a;
 						  		ray_col = ray_col + (1.0f-ray_col.a) * voxel_col;
 
-						  	} else if (_RenderMode < 2.5 && ray_col.a < 1.0 && voxel_col.a > _DataMin && voxel_col.a < _DataMax){
+
+						  	} else if (_RenderMode == 2 && voxel_col.a > _DataMin){
 						  		// Composting built-in alpha - probably built-in alpha from Icy
-						  		float normalisation = _Opacity*10.0f * length(ray_step) * pow(voxel_col.a, _StretchPower);
-						  		ray_col.rgb = ray_col.rgb + (1 - ray_col.a) * normalisation * voxel_col.rgb;
-						  		ray_col.a   = ray_col.a   + (1 - ray_col.a) * normalisation;
+						  		voxel_col.a *= normalised_opacity; //saturate(_Opacity * length(ray_step));
+						  		voxel_col.rgb *= voxel_col.a;
+						  		ray_col = ray_col + (1.0f-ray_col.a) * voxel_col;
 
-						  	} else if (_RenderMode < 3.5){
-						  		// Gradient magnitude opacity modulation
+						  		//voxel_col.a *= normalised_opacity; //saturate(_Opacity * length(ray_step));
+						  		//voxel_col.rgb *= voxel_col.a; //* (1-0.5 * (tNear-k/_Steps) ); // This doesn't really work as it should. 
+						  		//ray_col = ray_col + (1.0f-ray_col.a) * voxel_col;
 
-						  	} else if (_RenderMode < 4.5){
-						  		// Shaded iso-volume
+
+						  	} else if (_RenderMode == 3 && mean_col > _DataMin && mean_col < iso_cutoff ){
+						  		// 5% iso-volume - add shading?
+						  		ray_col.rgb = voxel_col.rgb;
+						  		ray_col.a = 1.0;
+						  	} else if (_RenderMode == 4 && mean_col > _DataMin && mean_col < _DataMin * 1.1){
+						  		// 10% iso-volume - add shading?
+						  		ray_col.rgb = voxel_col.rgb;
+						  		ray_col.a = 1.0;
 						  	}
 
 						  	// Need to sort border out still. 
@@ -317,7 +313,7 @@ Shader "Custom/VR Raycaster" {
 					}
 				}
 				ray_col.rgb *= _Intensity;
-		    	return ray_col; 
+		    	return ray_col;
 			}
 
 			ENDCG
