@@ -12,3 +12,7 @@ The development platform for FPBioimage is Unity, since it allows creation of a 
 Future developments of the app will put a focus on medical data, allowing doctors and patients to use the app to view 3D medical scans in VR. This idea lends itself particularly well to the Oculus Go, so that bed-bound patients could easily view their medical data with the mobile VR device brought to them, allowing them to make informed decisions alongside their clinician.
 
 FPBioimage has been created by a single developer, Marcus Fantham, as part of his PhD research at the University of Cambridge.
+
+A demo website can be found at https://fpb.ceb.cam.ac.uk/demo/, and a working VR app for Android at https://github.com/fpBioImage/VRBioimage/releases/.
+
+![Screenshot](fpbScreenshot.PNG)
