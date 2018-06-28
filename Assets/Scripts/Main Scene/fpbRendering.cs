@@ -16,11 +16,11 @@ public class fpbRendering : MonoBehaviour {
 
 	[Header("Touch input")]
 	[SerializeField]
-	private float opacityTouchSpeed = 80f;
+	private float opacityTouchSpeed = 1f;
 	[SerializeField]
-	private float thresholdTouchSpeed = 7f;
+	private float thresholdTouchSpeed = 0.1f;
 	[SerializeField]
-	private float intensityTouchSpeed = 20f;
+	private float intensityTouchSpeed = 0.5f;
 
 	[Header("Slider input")]
 	[SerializeField]
@@ -37,6 +37,7 @@ public class fpbRendering : MonoBehaviour {
 	public float intensity = 1.0f;
 
 	public GameObject volumetricCube;
+	public Dropdown qualityDropdown;
 	private Material _rayMarchMaterial;
 	private bool cameraFrozen = true;
 	private float updateTime;
@@ -55,6 +56,9 @@ public class fpbRendering : MonoBehaviour {
 		
 	private void Start()
 	{
+		// Set Quality
+		qualityDropdown.value = variables.fpbQuality + 1;
+
 		// Get game object variables
 		_rayMarchMaterial = volumetricCube.GetComponent<Renderer> ().material;
 		volumeLayer = (1 << LayerMask.NameToLayer ("TransparentFX"));
@@ -190,17 +194,19 @@ public class fpbRendering : MonoBehaviour {
 	}
 
 	private void freezeCamera(bool freezeCamera){
-		if (freezeCamera) {
-			// Freeze camera, so that we're not wasting rendering passes rendering the same image again and again! 
-			GetComponent<Camera> ().clearFlags = CameraClearFlags.Nothing;
-			GetComponent<Camera> ().cullingMask = 0;
-		} else {
-			// Unfreeze camera: start rendering again! 
-			GetComponent<Camera> ().cullingMask = volumeLayer;
-			GetComponent<Camera> ().clearFlags = CameraClearFlags.SolidColor;
-			GetComponent<Camera> ().backgroundColor = Color.clear;
+		if (!variables.vr) {
+			if (freezeCamera) {
+				// Freeze camera, so that we're not wasting rendering passes rendering the same image again and again! 
+				GetComponent<Camera> ().clearFlags = CameraClearFlags.Nothing;
+				GetComponent<Camera> ().cullingMask = 0;
+			} else {
+				// Unfreeze camera: start rendering again! 
+				GetComponent<Camera> ().cullingMask = volumeLayer;
+				GetComponent<Camera> ().clearFlags = CameraClearFlags.SolidColor;
+				GetComponent<Camera> ().backgroundColor = Color.clear;
+			}
+			cameraFrozen = freezeCamera;
 		}
-		cameraFrozen = freezeCamera;
 	}
 
 	// Helper functions

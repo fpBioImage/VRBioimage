@@ -254,7 +254,7 @@ Shader "Custom/VR Raycaster" {
 			    //float3 startOffset = float3(rand(i.pos.xy), rand(i.ray_d.xy), rand(i.ray_o.xy))/_Steps;
 			    float3 startOffset = 0;
 			    if (_startOffset == 1){
-				    startOffset = extraStepLength/_Steps;
+				    startOffset = (extraStepLength-1.0)/_Steps;
 				} else if (_startOffset == 2){
 					startOffset = rand(i.ray_d.xyz)/_Steps;
 				}
@@ -281,7 +281,7 @@ Shader "Custom/VR Raycaster" {
 						  && ray_pos.x < 1 && ray_pos.y < 1 && ray_pos.z < 1){
 						  	float4 voxel_col = sample2D(ray_pos);
 						  	//voxel_col = float4(ray_pos.xyz, 0.5f); // Nice line for rainbow cube testing
-						  	//voxel_col = float4(startOffset, 0.5f);
+						  	//voxel_col = float4(extraStepLength, extraStepLength, extraStepLength, 0.5f);
 						  	float mean_col = (voxel_col.r + voxel_col.g + voxel_col.b)/3.0f;
 						  	if (_RenderMode < 0.5 && mean_col > _DataMin && mean_col < _DataMax){
 						  		// Max Intensity Projection

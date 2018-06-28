@@ -14,7 +14,7 @@ using System.Collections;
 public class cubeRotation : MonoBehaviour {
 
 	// Variables
-	public float rotateSpeed = 2f;
+	public float rotateSpeed = 2000f;
 	private Transform camTransform;
 
 	public float mouseSensitivity = 5.0f;
@@ -27,37 +27,41 @@ public class cubeRotation : MonoBehaviour {
 	// Use this for initialization
 	void Start () {
 		camTransform = Camera.main.transform;
-		#if UNITY_EDITOR
-		rotateSpeed = 2.0f;
-		mouseSensitivity = 5.0f;
-		#endif
+		rotateSpeed = 2000.0f;
+		//mouseSensitivity = 5.0f;
 	}
 	
 	// Update is called once per frame
 	void FixedUpdate () {
-		if (!variables.showBindingBox) {freezeRotation = false;}
+		if (!variables.showBindingBox) {
+			freezeRotation = false;
+		}
 
 		// Keyboard arrow control
-		if (!variables.freezeAll){
-			Vector3 vertRotAxis = transform.InverseTransformDirection(camTransform.TransformDirection(Vector3.right)).normalized;
+		if (!variables.freezeAll) {
+			Vector3 vertRotAxis = transform.InverseTransformDirection (camTransform.TransformDirection (Vector3.right)).normalized;
 
-			float horizontalRot = Input.GetAxis("H2") * -rotateSpeed;
-			float verticalRot = Input.GetAxis("V2") * rotateSpeed;
+			float horizontalRot = Input.GetAxis ("H2") * -rotateSpeed;
+			float verticalRot = Input.GetAxis ("V2") * rotateSpeed;
 
-			transform.Rotate(vertRotAxis, verticalRot, Space.Self);
+			transform.Rotate (vertRotAxis, verticalRot, Space.Self);
 			transform.Rotate (Vector3.up, horizontalRot, Space.World);
 		}
 
 		// Mouse click control
-		if(Input.GetMouseButton(0) && variables.freezeMouse && !freezeRotation){
+		if (Input.GetMouseButton (0) && variables.freezeMouse && !freezeRotation) {
 			// Rotate with the mouse
-			Vector3 vertRotAxis = transform.InverseTransformDirection(camTransform.TransformDirection(Vector3.right)).normalized;
+			Vector3 vertRotAxis = transform.InverseTransformDirection (camTransform.TransformDirection (Vector3.right)).normalized;
 
-			float horizontalRot = Input.GetAxis("Mouse X") * -mouseSensitivity;
-			float verticalRot = Input.GetAxis("Mouse Y") * mouseSensitivity;
+			float horizontalRot = Input.GetAxis ("Mouse X") * -mouseSensitivity;
+			float verticalRot = Input.GetAxis ("Mouse Y") * mouseSensitivity;
 
-			transform.Rotate(vertRotAxis, verticalRot, Space.Self);
+			transform.Rotate (vertRotAxis, verticalRot, Space.Self);
 			transform.Rotate (Vector3.up, horizontalRot, Space.World);
+		}
+
+		if (variables.vr) {
+			transform.Rotate (Vector3.up, 15.0f * Time.deltaTime);
 		}
 
 	}

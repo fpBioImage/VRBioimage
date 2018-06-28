@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
@@ -21,14 +22,12 @@ public class UnityDeeplinks : MonoBehaviour {
 		}
 		#endif
 
-		// TEST for decoding...
-		/*string fpb64 = "eyJhdGxhc01vZGUiOiJ0cnVlIiwiaW1hZ2VBbHBoYSI6InRydWUiLCJwYXRoVG9GUEJpb2ltYWdlIjoiaHR0cDovL2ZwYi5jZWIuY2FtLmFjLnVrL2RldjMiLCJwYXRoVG9JbWFnZXMiOiJodHRwOi8vZnBiLmNlYi5jYW0uYWMudWsvZGVtby9leGFtcGxlcy9jdGhlYWQtaW1hZ2VzIiwidW5pcXVlTmFtZSI6ImN0aGVhZCIsImltYWdlUHJlZml4IjoiY3RoZWFkX3oiLCJudW1iZXJpbmdGb3JtYXQiOiIwMDAwIiwiZmlsZVR5cGUiOiJwbmciLCJ2b3hlbFNpemUiOnsieCI6MSwieSI6MSwieiI6Mn0sIm51bWJlck9mSW1hZ2VzIjo5OSwic2xpY2VXaWR0aCI6MjU2LCJzbGljZUhlaWdodCI6MjU2LCJvcGFjaXR5IjozLjMsImludGVuc2l0eSI6MS40LCJ0aHJlc2hvbGQiOjAuMjUsInByb2plY3Rpb24iOjJ9"; // copy in from javascript
 
-		// Assume we have a base64 encoded string coming in from the link
-		byte[] data = System.Convert.FromBase64String(fpb64);
-		string fpbString = System.Text.Encoding.UTF8.GetString (data);
-		GameObject go = GameObject.Find ("Title");
-		go.GetComponent<Text> ().text = fpbString;*/
+		// TEST for decoding...
+		/*
+		string fpb64 = "?f=eyJhdGxhc01vZGUiOiJ0cnVlIiwiaW1hZ2VBbHBoYSI6InRydWUiLCJwYXRoVG9GUEJpb2ltYWdlIjoiaHR0cDovL2ZwYi5jZWIuY2FtLmFjLnVrL2RldjMiLCJwYXRoVG9JbWFnZXMiOiJodHRwOi8vZnBiLmNlYi5jYW0uYWMudWsvZGVtby9leGFtcGxlcy9jdGhlYWQtaW1hZ2VzIiwidW5pcXVlTmFtZSI6ImN0aGVhZCIsImltYWdlUHJlZml4IjoiY3RoZWFkX3oiLCJudW1iZXJpbmdGb3JtYXQiOiIwMDAwIiwiZmlsZVR5cGUiOiJwbmciLCJ2b3hlbFNpemUiOnsieCI6MSwieSI6MSwieiI6Mn0sIm51bWJlck9mSW1hZ2VzIjo5OSwic2xpY2VXaWR0aCI6MjU2LCJzbGljZUhlaWdodCI6MjU2LCJvcGFjaXR5IjozLjMsImludGVuc2l0eSI6MS40LCJ0aHJlc2hvbGQiOjAuMjUsInByb2plY3Rpb24iOjJ9"; // copy in from javascript
+		onDeeplink (fpb64);
+		*/
 	}
 	
 	// Update is called once per frame
@@ -36,7 +35,9 @@ public class UnityDeeplinks : MonoBehaviour {
 	}
 
 	public void onDeeplink(string deeplink) {
-		Debug.Log("onDeeplink " + deeplink);
+		if (SceneManager.GetActiveScene ().buildIndex != 0) {
+			SceneManager.LoadScene(0);
+		}
 
 		// Find part of URL starting 'f='
 		int index = deeplink.IndexOf("f="); 

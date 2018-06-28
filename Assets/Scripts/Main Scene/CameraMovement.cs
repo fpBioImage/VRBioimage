@@ -128,15 +128,6 @@ public class CameraMovement : MonoBehaviour {
 					variables.freezeMouse = true;
 				}
 			}
-
-
-			// Touch controls: double-tap hides binding box
-			if (Input.touchCount == 1) { 
-				Touch touch0 = Input.GetTouch (0);
-				if (touch0.tapCount == 2) {
-					variables.showBindingBox = !variables.showBindingBox;
-				}
-			}
 		}
 	}
 

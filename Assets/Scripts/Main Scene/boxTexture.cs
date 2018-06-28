@@ -15,7 +15,16 @@ public class boxTexture : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-		if (Input.GetKeyUp (KeyCode.H) && !variables.freezeAll) {
+		// Touch controls: double-tap hides binding box
+		bool doubledTapped = false;
+		if (Input.touchCount == 1) { 
+			Touch touch0 = Input.GetTouch (0);
+			if (touch0.tapCount == 2) {
+				doubledTapped = true;
+			}
+		}
+
+		if ((Input.GetKeyUp (KeyCode.H) || doubledTapped) && !variables.freezeAll) {
 			variables.showBindingBox = !variables.showBindingBox;
 
 			for (int r = 0; r < rend.Length; r++) {
