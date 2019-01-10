@@ -15,9 +15,11 @@ public class touchControls : MonoBehaviour {
 	// Use this for initialization
 	void Start () {
 	}
-	
-	// Fixed update should keep movement smoother, hopefully.. 
-	void FixedUpdate () {
+
+	private bool wasZoomingLastFrame = false;
+	private Vector2[] lastZoomPositions;
+
+	void Update () {
 		// Touch control
 		if (variables.freezeMouse) {
 
@@ -40,7 +42,7 @@ public class touchControls : MonoBehaviour {
 
 				touchOld = touchDeltaPosition;
 
-			} else if (Input.touchCount == 2) {
+			} else if (Input.touchCount == 2 && (Input.GetTouch(0).phase == TouchPhase.Moved || Input.GetTouch(1).phase == TouchPhase.Moved)) {
 				// Store both touches.
 				Touch touchZero = Input.GetTouch (0);
 				Touch touchOne = Input.GetTouch (1);
@@ -66,8 +68,8 @@ public class touchControls : MonoBehaviour {
 				float xMove = (touchZero.deltaPosition.x + touchOne.deltaPosition.x) / Screen.width; 
 				float yMove = (touchZero.deltaPosition.y + touchOne.deltaPosition.y) / Screen.width;
 
-				cameraToMove.transform.position += cameraToMove.transform.right * xMove * translateSpeed;
-				cameraToMove.transform.position += cameraToMove.transform.up * yMove * translateSpeed;
+				cameraToMove.transform.position -= cameraToMove.transform.right * xMove * translateSpeed;
+				cameraToMove.transform.position -= cameraToMove.transform.up * yMove * translateSpeed;
 
 			}
 		}

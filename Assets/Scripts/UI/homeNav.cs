@@ -8,7 +8,7 @@ public class homeNav : MonoBehaviour {
 	void Start () {
 		variables.vr = false;
 		changeModelDropdown (0);
-		changeQualityDropdown (0);
+		changeQualityDropdown (1); // Maybe remember these...! 
 	}
 	
 	// Update is called once per frame

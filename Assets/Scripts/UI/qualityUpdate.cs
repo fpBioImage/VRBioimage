@@ -105,7 +105,7 @@ public class qualityUpdate : MonoBehaviour {
 			return 0;
 		} else if (resXY.value == 400.0f && resZ.value == 100.0f && interp.value == 0){
 			return 1;
-		} else if (resXY.value == 450.0f && resZ.value == 150.0f && interp.value == 0) {
+		} else if (resXY.value == 400.0f && resZ.value == 500.0f && interp.value == 0) {
 			return 2;
 		} else if (resXY.value == 768.0f && resZ.value == 350.0f && interp.value == 0) {
 			return 3;
@@ -138,8 +138,8 @@ public class qualityUpdate : MonoBehaviour {
 			break;
 		case 2:
 			// Medium Quality
-			resXY.value = 450.0f;
-			resZ.value = 150.0f;
+			resXY.value = 400.0f;
+			resZ.value = 500.0f;
 			interp.value = 0;
 			break;
 		case 3:

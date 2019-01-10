@@ -78,7 +78,7 @@ public class CameraMovement : MonoBehaviour {
 	
 	// Fixed update to control camera movement
 	void FixedUpdate () {
-		if (!variables.freezeAll) {
+		if (!variables.freezeAll && Input.touchCount == 0) {
 			if (Input.GetKeyDown (KeyCode.Space)) {
 				fastMode = !fastMode;
 			}

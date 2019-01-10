@@ -70,9 +70,9 @@ public class FpbJSON {
 			numberingFormat = "0000";
 			pathToImages = "mouse/";
 			voxelSize = new Vector3 (1.0f, 1.0f, 1.0f / 2);
-			opacity = 5.0f;
+			opacity = 8.0f;
 			intensity = 1.3f;
-			threshold = 0.2f;
+			threshold = 0.1f;
 			projection = 2;
 			atlasMode = "true";
 			imageAlpha = "true";
@@ -87,9 +87,9 @@ public class FpbJSON {
 			numberOfImages = 99;
 			sliceWidth = 256;
 			sliceHeight = 256;
-			opacity = 1.0f;
+			opacity = 8.0f;
 			intensity = 1.4f;
-			threshold = 0.15f;
+			threshold = 0.05f;
 			projection = 2;
 			return;
 

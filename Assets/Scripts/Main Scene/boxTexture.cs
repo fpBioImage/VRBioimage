@@ -19,7 +19,7 @@ public class boxTexture : MonoBehaviour {
 		bool doubledTapped = false;
 		if (Input.touchCount == 1) { 
 			Touch touch0 = Input.GetTouch (0);
-			if (touch0.tapCount == 2) {
+			if (touch0.tapCount == 2 && touch0.phase == TouchPhase.Ended) {
 				doubledTapped = true;
 			}
 		}
